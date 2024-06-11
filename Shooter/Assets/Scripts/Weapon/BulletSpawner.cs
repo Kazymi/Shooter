@@ -19,15 +19,15 @@ public class BulletSpawner : MonoBehaviour
     {
         Initialize();
     }
-    
+
     private void Initialize()
     {
         bulletManager.Add(BulletType.SingleShot, new SingleShot());
         bulletManager.Add(BulletType.ShotGunShot, new ShotGunShot());
     }
 
-    public void SpawnBullet(Transform startPosition, BulletType bulletType)
+    public void SpawnBullet(Transform startPosition, BulletType bulletType, int damage)
     {
-        bulletManager[bulletType].Shot(startPosition.transform);
+        bulletManager[bulletType].Shot(startPosition.transform, damage);
     }
 }

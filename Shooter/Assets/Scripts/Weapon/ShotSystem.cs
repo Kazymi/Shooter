@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class ShotSystem : MonoBehaviour
 {
+    [SerializeField] private int damage;
     [SerializeField] private Transform shotCamera;
     [SerializeField] private BulletType bulletType;
 
@@ -13,6 +14,6 @@ public class ShotSystem : MonoBehaviour
     {
         Shooted?.Invoke();
         bulletSpawner ??= ServiceLocator.GetService<BulletSpawner>();
-        bulletSpawner.SpawnBullet(shotCamera.transform, bulletType);
+        bulletSpawner.SpawnBullet(shotCamera.transform, bulletType,damage);
     }
 }

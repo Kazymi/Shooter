@@ -2,7 +2,7 @@
 
 public class ShotGunShot : BulletMain
 {
-    public override void Shot(Transform startPosition)
+    public override void Shot(Transform startPosition,int damage)
     {
     }
 }

@@ -6,9 +6,13 @@ using UnityEngine;
 [RequireComponent(typeof(Animator), typeof(ShotSystem), typeof(Reloader))]
 public class WeaponStateMachine : MonoBehaviour
 {
+    [SerializeField] private string gradadeStat;
+    [SerializeField] private Transform granadeSpawnPosition;
+    [SerializeField] private Granade prefab;
     [SerializeField] private float fireRate;
     private StateMachine _stateMachine;
     private StateMachine _shotMachine;
+    private StateMachine _granadeMachine;
 
     public float FireRate => fireRate;
 
@@ -19,8 +23,12 @@ public class WeaponStateMachine : MonoBehaviour
     private IdleWeaponState idleState;
     private ReloadWeaponState reloadWeaponState;
 
+    private IPool<Granade> granadePool;
+
     private void Awake()
     {
+        var factory = new FactoryMonoObject<Granade>(prefab.gameObject, transform);
+        granadePool = new Pool<Granade>(factory, 1);
         reloader = GetComponent<Reloader>();
         InitializeStateMachine();
     }
@@ -29,6 +37,8 @@ public class WeaponStateMachine : MonoBehaviour
     {
         _stateMachine.OnUpdate();
         _shotMachine.OnUpdate();
+        _granadeMachine.OnUpdate();
+        gradadeStat = _granadeMachine.CurrentState.ToString();
         if (Input.GetKeyDown(KeyCode.R) && reloader.IsMagFull() == false)
         {
             StartReload();
@@ -39,6 +49,15 @@ public class WeaponStateMachine : MonoBehaviour
     {
         _stateMachine.OnFixedUpdate();
         _shotMachine.OnFixedUpdate();
+        _granadeMachine.OnFixedUpdate();
+    }
+
+    public void SpawnGrenade()
+    {
+        var grenada = granadePool.Pull();
+        grenada.transform.position = granadeSpawnPosition.position;
+        grenada.transform.rotation = granadeSpawnPosition.rotation;
+        grenada.AddVelocity();
     }
 
     private bool CheckReadyShot()
@@ -86,9 +105,10 @@ public class WeaponStateMachine : MonoBehaviour
             new FuncCondition(() => Input.GetMouseButton(1) == false)));
 
         reloadWeaponState.AddTransition(new StateTransition(idleState,
-            new AnimationTransitionCondition(animatorController.Animator, WeaponAnimationType.Reload.ToString(),1f)));
+            new AnimationTransitionCondition(animatorController.Animator, WeaponAnimationType.Reload.ToString(), 1f)));
         _stateMachine = new StateMachine(showState);
         InitializeShotStateMachine(animatorController);
+        InitializeGranadeStateMachine(animatorController);
     }
 
     private void StartReload()
@@ -97,6 +117,20 @@ public class WeaponStateMachine : MonoBehaviour
         {
             _stateMachine.SetState(reloadWeaponState);
         }
+    }
+
+    private void InitializeGranadeStateMachine(WeaponAnimationController weaponAnimationController)
+    {
+        var idleState = new WeaponIdleGranadeState(weaponAnimationController);
+        var granadeState = new WeaponGranadeState(weaponAnimationController);
+
+        idleState.AddTransition(new StateTransition(granadeState,
+            new FuncCondition(() => Input.GetKeyDown(KeyCode.G) && _stateMachine.CurrentState != reloadWeaponState)));
+        granadeState.AddTransition(new StateTransition(idleState,
+            new AnimationTransitionCondition(weaponAnimationController.Animator, "Granade",
+                0.9f, 2)));
+
+        _granadeMachine = new StateMachine(idleState);
     }
 
     private void InitializeShotStateMachine(WeaponAnimationController weaponAnimationController)
@@ -119,5 +153,45 @@ public class WeaponStateMachine : MonoBehaviour
         shotstate.AddTransition(new StateTransition(idleState, new TemporaryCondition(fireRate)));
 
         _shotMachine = new StateMachine(idleState);
+    }
+}
+
+public class WeaponGranadeState : State
+{
+    private readonly WeaponAnimationController _weaponAnimationController;
+
+    public WeaponGranadeState(WeaponAnimationController weaponAnimationController)
+    {
+        _weaponAnimationController = weaponAnimationController;
+    }
+
+    public override void OnStateEnter()
+    {
+        _weaponAnimationController.SetBool(WeaponAnimationType.Granade, true);
+    }
+
+    public override void OnStateExit()
+    {
+        _weaponAnimationController.SetBool(WeaponAnimationType.Granade, false);
+    }
+}
+
+public class WeaponIdleGranadeState : State
+{
+    private readonly WeaponAnimationController _weaponAnimationController;
+
+    public WeaponIdleGranadeState(WeaponAnimationController weaponAnimationController)
+    {
+        _weaponAnimationController = weaponAnimationController;
+    }
+
+    public override void OnStateEnter()
+    {
+        _weaponAnimationController.SetBool(WeaponAnimationType.Idlegrenade, true);
+    }
+
+    public override void OnStateExit()
+    {
+        _weaponAnimationController.SetBool(WeaponAnimationType.Idlegrenade, false);
     }
 }

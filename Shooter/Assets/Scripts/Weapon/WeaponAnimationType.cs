@@ -5,5 +5,15 @@
     Shot,
     Reload,
     Run,
-    Scope
+    Scope,
+    Granade,
+    Idlegrenade,
+}
+
+public enum CharacterAnimationType
+{
+    Show,
+    Idle,
+    Walk,
+    Attack,
 }
